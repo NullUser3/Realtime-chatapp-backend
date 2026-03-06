@@ -1,0 +1,171 @@
+#!/usr/bin/env node
+
+/**
+ * Module dependencies.
+ */
+import dotenv from "dotenv";
+dotenv.config({path:".env"});
+
+import http from "http";
+
+import app from "../src/app.js";
+import { registerGoogleStrategy } from "../src/config/google.js";
+registerGoogleStrategy();
+import debug from "debug";
+
+import connectDB from "../src/connectDB.js";
+import { Server } from "socket.io";
+import cookie from "cookie";
+import jwt from "jsonwebtoken";
+import User from "../src/models/User.js";
+import { sendMessageService } from "../src/services/message.service.js";
+
+const logger = debug("backend:server");
+
+
+
+connectDB();
+
+const port = normalizePort(process.env.PORT || "8000");
+app.set("port", port);
+
+const httpServer = http.createServer(app);
+
+const io = new Server(httpServer, {
+  cors: {
+    origin: process.env.FRONTEND_URL,
+    credentials: true,
+    methods: ["GET", "POST"],
+  },
+});
+
+io.use(async (socket, next) => {
+  try {
+    const cookies = cookie.parse(socket.request.headers.cookie || "");
+    const token = cookies.token;
+
+    if (!token) return next(new Error("Not authorized"));
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.id).select("-password");
+    if (!user) return next(new Error("User not found"));
+
+    socket.user = user;
+    next();
+  } catch (err) {
+    next(new Error("Authentication error"));
+  }
+});
+
+const onlineUsers = new Map();
+
+io.on("connection", (socket) => {
+  
+
+  if (!onlineUsers.has(socket.user.id)) {
+    onlineUsers.set(socket.user.id, new Set());
+  }
+
+  onlineUsers.get(socket.user.id).add(socket.id);
+
+    const updateOnlineStatus = (userId, isOnline , lastSeen) => {
+    io.emit("online_status", { userId, isOnline ,lastSeen });
+  };
+
+  if (onlineUsers.get(socket.user.id).size === 1) {
+    updateOnlineStatus(socket.user.id, true, null);
+  }
+
+socket.on("get_online_users", () => {
+  const currentlyOnline = Array.from(onlineUsers.keys());
+  socket.emit("online_users", currentlyOnline);
+});
+
+  socket.on("join_chat", (chatId) => {
+    socket.join(chatId);
+  });
+
+
+
+  socket.on("leave_chat", (chatId) => {
+    socket.leave(chatId);
+  });
+
+  socket.on("send_message", async (payload) => {
+    try {
+      const message = await sendMessageService(
+        socket.user._id,
+        payload.chatId,
+        payload.body,
+      );
+      io.to(payload.chatId).emit("receive_message", message);
+    } catch (err) {
+      socket.emit("message_error", {
+        message: err.message,
+        status: err.statusCode || 500,
+      });
+    }
+  });
+
+  socket.on("disconnect", async () => {
+    
+
+    const userSockets = onlineUsers.get(socket.user.id);
+
+    if (userSockets) {
+      userSockets.delete(socket.id);
+
+      if (userSockets.size === 0) {
+        onlineUsers.delete(socket.user.id);
+      await User.findByIdAndUpdate(socket.user._id, { lastSeen: new Date() });
+      
+      updateOnlineStatus(socket.user._id.toString(), false, new Date());
+      }
+    }
+  });
+});
+
+httpServer.listen(port);
+httpServer.on("error", onError);
+httpServer.on("listening", onListening);
+
+function normalizePort(val) {
+  const port = parseInt(val, 10);
+
+  if (isNaN(port)) {
+    return val;
+  }
+
+  if (port >= 0) {
+    return port;
+  }
+
+  return false;
+}
+
+function onError(error) {
+  if (error.syscall !== "listen") {
+    throw error;
+  }
+
+  const bind = typeof port === "string" ? "Pipe " + port : "Port " + port;
+
+  switch (error.code) {
+    case "EACCES":
+      console.error(bind + " requires elevated privileges");
+      process.exit(1);
+      break;
+    case "EADDRINUSE":
+      console.error(bind + " is already in use");
+      process.exit(1);
+      break;
+    default:
+      throw error;
+  }
+}
+
+function onListening() {
+  const addr = httpServer.address();
+  const bind = typeof addr === "string" ? "pipe " + addr : "port " + addr.port;
+  logger("Listening on " + bind);
+}
