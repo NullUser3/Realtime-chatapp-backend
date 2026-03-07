@@ -21,19 +21,20 @@ const userSchema = mongoose.Schema(
       lowercase: true,
       match: [/^\S+@\S+\.\S+$/, "Invalid email format"],
     },
-password: {
-  type: String,
-  required: function () {
-    return !this.googleId; // only required if NOT Google user
-  },
-  validate: {
-    validator: function (v) {
-      // Minimum 10 characters, at least one number
-      return /^(?=.*\d).{10,}$/.test(v);
+    password: {
+      type: String,
+      required: function () {
+        return !this.googleId; // only required if NOT Google user
+      },
+      validate: {
+        validator: function (v) {
+          if (v?.startsWith("$2b$")) return true; // skip validation for hashed passwords
+          return /^(?=.*\d).{10,}$/.test(v);
+        },
+        message:
+          "Password must be at least 10 characters long and include at least one number",
+      },
     },
-    message:
-      "Password must be at least 10 characters long and include at least one number",
-  }},
     avatar: {
       type: String,
       default: null,

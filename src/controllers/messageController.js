@@ -1,8 +1,6 @@
 import { httpsErrors } from "../../errors/httpsErrors.js";
 import Message from "../models/Message.js";
 import sanitizeHtml from "sanitize-html";
-import User from "../models/User.js";
-import mongoose from "mongoose";
 import Chat from "../models/Chat.js";
 import { sendMessageService } from "../services/message.service.js";
 

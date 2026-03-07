@@ -4,25 +4,20 @@ import jwt from "jsonwebtoken";
 
 const authRoute = express.Router();
 
-
 authRoute.get(
   "/google",
   passport.authenticate("google", {
     scope: ["profile", "email"],
-  })
+  }),
 );
-
 
 authRoute.get(
   "/google/callback",
   passport.authenticate("google", { session: false }),
   (req, res) => {
-
-    const token = jwt.sign(
-      { id: req.user._id },
-      process.env.JWT_SECRET,
-      { expiresIn: "7d" }
-    );
+    const token = jwt.sign({ id: req.user._id }, process.env.JWT_SECRET, {
+      expiresIn: "7d",
+    });
 
     res.cookie("token", token, {
       httpOnly: true,
@@ -32,7 +27,7 @@ authRoute.get(
     });
 
     res.redirect(process.env.FRONTEND_URL);
-  }
+  },
 );
 
 export default authRoute;

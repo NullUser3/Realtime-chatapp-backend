@@ -4,13 +4,15 @@
  * Module dependencies.
  */
 import dotenv from "dotenv";
-dotenv.config({path:".env"});
+if (process.env.NODE_ENV !== "production") {
+  dotenv.config({ path: ".env" });
+}
 
 import http from "http";
 
 import app from "../src/app.js";
 import { registerGoogleStrategy } from "../src/config/google.js";
-registerGoogleStrategy();
+
 import debug from "debug";
 
 import connectDB from "../src/connectDB.js";
@@ -20,9 +22,8 @@ import jwt from "jsonwebtoken";
 import User from "../src/models/User.js";
 import { sendMessageService } from "../src/services/message.service.js";
 
+registerGoogleStrategy();
 const logger = debug("backend:server");
-
-
 
 connectDB();
 
@@ -58,34 +59,29 @@ io.use(async (socket, next) => {
 });
 
 const onlineUsers = new Map();
+const updateOnlineStatus = (userId, isOnline, lastSeen) => {
+  io.emit("online_status", { userId, isOnline, lastSeen });
+};
 
 io.on("connection", (socket) => {
-  
-
   if (!onlineUsers.has(socket.user.id)) {
     onlineUsers.set(socket.user.id, new Set());
   }
 
   onlineUsers.get(socket.user.id).add(socket.id);
 
-    const updateOnlineStatus = (userId, isOnline , lastSeen) => {
-    io.emit("online_status", { userId, isOnline ,lastSeen });
-  };
-
   if (onlineUsers.get(socket.user.id).size === 1) {
     updateOnlineStatus(socket.user.id, true, null);
   }
 
-socket.on("get_online_users", () => {
-  const currentlyOnline = Array.from(onlineUsers.keys());
-  socket.emit("online_users", currentlyOnline);
-});
+  socket.on("get_online_users", () => {
+    const currentlyOnline = Array.from(onlineUsers.keys());
+    socket.emit("online_users", currentlyOnline);
+  });
 
   socket.on("join_chat", (chatId) => {
     socket.join(chatId);
   });
-
-
 
   socket.on("leave_chat", (chatId) => {
     socket.leave(chatId);
@@ -94,7 +90,7 @@ socket.on("get_online_users", () => {
   socket.on("send_message", async (payload) => {
     try {
       const message = await sendMessageService(
-        socket.user._id,
+        socket.user.id,
         payload.chatId,
         payload.body,
       );
@@ -108,8 +104,6 @@ socket.on("get_online_users", () => {
   });
 
   socket.on("disconnect", async () => {
-    
-
     const userSockets = onlineUsers.get(socket.user.id);
 
     if (userSockets) {
@@ -117,15 +111,15 @@ socket.on("get_online_users", () => {
 
       if (userSockets.size === 0) {
         onlineUsers.delete(socket.user.id);
-      await User.findByIdAndUpdate(socket.user._id, { lastSeen: new Date() });
-      
-      updateOnlineStatus(socket.user._id.toString(), false, new Date());
+        await User.findByIdAndUpdate(socket.user.id, { lastSeen: new Date() });
+
+        updateOnlineStatus(socket.user.id.toString(), false, new Date());
       }
     }
   });
 });
 
-httpServer.listen(port);
+httpServer.listen(port, "0.0.0.0");
 httpServer.on("error", onError);
 httpServer.on("listening", onListening);
 

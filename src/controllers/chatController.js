@@ -27,7 +27,10 @@ export const createChat = async (req, res, next) => {
     if (!chat) {
       chat = await Chat.create({ participants, sender: senderId });
       chat = await chat.populate([
-        { path: "participants", select: "username avatar lastSeen avatarColor" },
+        {
+          path: "participants",
+          select: "username avatar lastSeen avatarColor",
+        },
         { path: "lastMessage", select: "body createdAt sender" },
       ]);
     }
@@ -106,21 +109,20 @@ export const deleteChat = async (req, res, next) => {
     const { chatId } = req.params;
     const userId = req.user._id;
 
-    const chat = await Chat.findById(chatId);
+    const chat = await Chat.findOneAndUpdate(
+      {
+        _id: chatId,
+        participants: userId, // ensures user belongs to chat
+      },
+      {
+        $addToSet: { deletedFor: userId },
+      },
+      { new: true },
+    );
 
     if (!chat) {
-      return next(new httpsErrors(404, ": chat not found"));
+      return next(new httpsErrors(403, "Unauthorized or chat not found"));
     }
-
-    // Make sure user is part of the chat
-    if (!chat.participants.includes(userId)) {
-      return next(new httpsErrors(403, ": unauthorized"));
-    }
-
-    // Soft delete (avoid duplicates)
-    await Chat.findByIdAndUpdate(chatId, {
-      $addToSet: { deletedFor: userId },
-    });
 
     return res.status(200).json({ message: "Chat deleted successfully" });
   } catch (error) {

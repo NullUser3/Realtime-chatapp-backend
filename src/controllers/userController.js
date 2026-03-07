@@ -5,7 +5,6 @@ import jwt from "jsonwebtoken";
 import { httpsErrors } from "../../errors/httpsErrors.js";
 
 export const register = async (req, res, next) => {
-  
   try {
     const { email, username, password } = req.body;
 
@@ -13,15 +12,13 @@ export const register = async (req, res, next) => {
       return next(new httpsErrors(400));
     }
 
-    
-
-        const passwordRegex = /^(?=.*\d).{10,}$/;
+    const passwordRegex = /^(?=.*\d).{10,}$/;
     if (!passwordRegex.test(password)) {
       return next(
         new httpsErrors(
           400,
-          "Password must be at least 10 characters long and include at least one number"
-        )
+          "Password must be at least 10 characters long and include at least one number",
+        ),
       );
     }
 
@@ -56,10 +53,7 @@ export const register = async (req, res, next) => {
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
-    return res.status(201).json({
-      message: "user created successfully!!",
-      token,
-    });
+    return res.status(201).json({ message: "signup successful" });
   } catch (error) {
     next(new httpsErrors(500));
   }
@@ -80,13 +74,13 @@ export const login = async (req, res, next) => {
     }
 
     if (!user.password) {
-  return next(
-    new httpsErrors(
-      400,
-      ": This account was created with Google. Please login using Google."
-    )
-  );
-}
+      return next(
+        new httpsErrors(
+          400,
+          ": This account was created with Google. Please login using Google.",
+        ),
+      );
+    }
 
     let token;
 
@@ -105,12 +99,9 @@ export const login = async (req, res, next) => {
       return next(new httpsErrors(400, ": invalid email or password"));
     }
 
-    return res.status(200).json({
-      message: "logged in successfully!!",
-      token,
-    });
+    return res.status(200).json({ message: "login successful" });
   } catch (error) {
-    next(new httpsErrors(500,error));
+    next(new httpsErrors(500, error));
   }
 };
 
@@ -143,6 +134,6 @@ export const searchUsers = async (req, res, next) => {
 
     res.status(200).json(findAllUsers);
   } catch (error) {
-    next(httpsErrors(500, ": error getting users"));
+    next(new httpsErrors(500, ": error getting users"));
   }
 };

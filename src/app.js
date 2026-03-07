@@ -1,5 +1,7 @@
 import dotenv from "dotenv";
-dotenv.config({ path: ".env" });
+if (process.env.NODE_ENV !== "production") {
+  dotenv.config({ path: ".env" });
+}
 
 import express from "express";
 import cookieParser from "cookie-parser";
@@ -8,15 +10,12 @@ import cors from "cors";
 import helmet from "helmet";
 import compression from "compression";
 import passport from "passport";
-
-import index from "./routes/index.js";
 import userRoute from "./routes/userRoute.js";
 import messageRoute from "./routes/messageRoute.js";
 import chatRoute from "./routes/chatRoute.js";
 import authRoute from "./routes/authRoute.js";
 
 import { httpsErrors } from "../errors/httpsErrors.js";
-import "./config/google.js";
 
 import { apiLimiter } from "./middleware/authLimiter.js";
 
@@ -40,7 +39,7 @@ app.use(
         scriptSrc: ["'self'"],
         styleSrc: ["'self'"],
         imgSrc: ["'self'", "data:"],
-        connectSrc: ["'self'"], // your API domain
+        connectSrc: ["'self'", process.env.FRONTEND_URL], // your API domain
         fontSrc: ["'self'"],
       },
     },
@@ -81,8 +80,6 @@ app.use("/messages", apiLimiter, messageRoute);
 app.use("/chat", apiLimiter, chatRoute);
 app.use("/auth", apiLimiter, authRoute);
 
-// Default index route (optional)
-app.use("/", index);
 
 // ---------------------------
 // 404 handler

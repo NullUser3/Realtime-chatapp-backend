@@ -35,6 +35,15 @@ const ChatSchema = mongoose.Schema(
   { timestamps: true },
 );
 
+// Prevent duplicate 1-to-1 chats (participants must be sorted!)
+ChatSchema.index(
+  { participants: 1 },
+  { unique: true, partialFilterExpression: { isGroup: false } },
+);
+
+// Optional: fast queries for non-deleted chats
+ChatSchema.index({ deletedFor: 1 });
+
 const Chat = mongoose.model("Chat", ChatSchema);
 
 export default Chat;

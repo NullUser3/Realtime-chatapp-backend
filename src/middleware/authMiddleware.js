@@ -1,9 +1,8 @@
-import jwt from 'jsonwebtoken';
-import User from '../models/User.js';
-import { httpsErrors } from '../../errors/httpsErrors.js';
+import jwt from "jsonwebtoken";
+import User from "../models/User.js";
+import { httpsErrors } from "../../errors/httpsErrors.js";
 
 const protect = async (req, res, next) => {
-    
   try {
     const token =
       req.cookies?.token ||
@@ -19,7 +18,6 @@ const protect = async (req, res, next) => {
 
     req.user = user;
     next();
-
   } catch (error) {
     next(new httpsErrors(401, "Token invalid or expired"));
   }
