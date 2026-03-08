@@ -9,9 +9,6 @@ const protect = async (req, res, next) => {
       (req.headers.authorization?.startsWith("Bearer ") &&
         req.headers.authorization.split(" ")[1]);
 
-        console.log("TOKEN:", token);  // add this
-    console.log("JWT_SECRET:", process.env.JWT_SECRET ? "exists" : "MISSING");
-
     if (!token) return next(new httpsErrors(401, "Not authorized, no token"));
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
