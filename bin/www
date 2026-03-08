@@ -88,29 +88,33 @@ io.on("connection", (socket) => {
   });
 
   socket.on("send_message", async (payload) => {
-  try {
+
+    try {
     const message = await sendMessageService(
       socket.user.id,
       payload.chatId,
       payload.body,
     );
 
-    // Emit to anyone in the chat room (sender's other tabs, receiver if joined)
     io.to(payload.chatId).emit("receive_message", message);
 
-    // Also emit directly to receiver's sockets (handles first message case)
     const chat = await Chat.findById(payload.chatId);
     const receiverId = chat.participants
       .find(p => p.toString() !== socket.user.id)
       ?.toString();
 
+    console.log("receiverId:", receiverId);
+    console.log("onlineUsers:", Array.from(onlineUsers.keys()));
+    console.log("receiver online:", onlineUsers.has(receiverId));
+
     if (receiverId && onlineUsers.has(receiverId)) {
       onlineUsers.get(receiverId).forEach(socketId => {
+        console.log("emitting to socketId:", socketId);
         io.to(socketId).emit("receive_message", message);
       });
     }
-
-  } catch (err) {
+  }
+   catch (err) {
     socket.emit("message_error", {
       message: err.message,
       status: err.statusCode || 500,
