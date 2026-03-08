@@ -17,5 +17,13 @@ userRoute.get("/searchUsers", searchLimiter, protect, searchUsers);
 userRoute.get("/me", protect, (req, res) => {
   res.status(200).json(req.user);
 });
+userRoute.get("/token", protect, (req, res) => {
+  const token = jwt.sign(
+    { id: req.user._id }, 
+    process.env.JWT_SECRET, 
+    { expiresIn: "7d" }
+  );
+  res.status(200).json({ token });
+});
 
 export default userRoute;
