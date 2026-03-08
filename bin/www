@@ -21,6 +21,7 @@ import cookie from "cookie";
 import jwt from "jsonwebtoken";
 import User from "../src/models/User.js";
 import { sendMessageService } from "../src/services/message.service.js";
+import Chat from "../src/models/Chat.js";
 
 registerGoogleStrategy();
 const logger = debug("backend:server");
@@ -103,9 +104,9 @@ io.on("connection", (socket) => {
       .find(p => p.toString() !== socket.user.id)
       ?.toString();
 
-    console.log("receiverId:", receiverId);
-    console.log("onlineUsers:", Array.from(onlineUsers.keys()));
-    console.log("receiver online:", onlineUsers.has(receiverId));
+    // console.log("receiverId:", receiverId);
+    // console.log("onlineUsers:", Array.from(onlineUsers.keys()));
+    // console.log("receiver online:", onlineUsers.has(receiverId));
 
     if (receiverId && onlineUsers.has(receiverId)) {
       onlineUsers.get(receiverId).forEach(socketId => {
