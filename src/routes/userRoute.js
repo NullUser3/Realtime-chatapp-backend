@@ -7,6 +7,7 @@ import {
 } from "../controllers/userController.js";
 import protect from "../middleware/authMiddleware.js";
 import { authLimiter, searchLimiter } from "../middleware/authLimiter.js";
+import jwt from "jsonwebtoken";
 
 const userRoute = express.Router();
 
@@ -18,17 +19,12 @@ userRoute.get("/me", protect, (req, res) => {
   res.status(200).json(req.user);
 });
 userRoute.get("/token", protect, (req, res) => {
-  try {
-    const token = jwt.sign(
-      { id: req.user._id },
-      process.env.JWT_SECRET,
-      { expiresIn: "7d" }
-    );
-    res.status(200).json({ token });
-  } catch (err) {
-    console.error("TOKEN ROUTE ERROR:", err.message);
-    res.status(500).json({ message: err.message });
-  }
+  const token = jwt.sign(
+    { id: req.user._id }, 
+    process.env.JWT_SECRET, 
+    { expiresIn: "7d" }
+  );
+  res.status(200).json({ token });
 });
 
 export default userRoute;
