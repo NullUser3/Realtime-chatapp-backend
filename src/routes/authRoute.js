@@ -18,7 +18,7 @@ authRoute.get(
     const token = jwt.sign(
       { id: req.user._id },
       process.env.JWT_SECRET,
-      { expiresIn: "30s" }
+      { expiresIn: "7d" }
     );
     res.redirect(`${process.env.FRONTEND_URL}/auth/callback?token=${token}`);
   }
