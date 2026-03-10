@@ -79,7 +79,9 @@ app.use("/users", apiLimiter, userRoute);
 app.use("/messages", apiLimiter, messageRoute);
 app.use("/chat", apiLimiter, chatRoute);
 app.use("/auth", apiLimiter, authRoute);
-
+app.get('/ping', (req, res) => {
+  res.json({ status: 'ok', message: 'Backend is alive' });
+});
 
 // ---------------------------
 // 404 handler
